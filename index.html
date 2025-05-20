@@ -1,0 +1,164 @@
+﻿<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <title>Balkan New Project</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        h1, h2 {
+            color: #00ccff;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            border-bottom: 1px solid #555;
+            padding-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            color: #00ccff;
+        }
+
+        input, textarea, button {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+        }
+
+        button {
+            background: #00ccff;
+            color: #000;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #555;
+            padding: 8px;
+            text-align: left;
+            color: #000;
+            background: #fff;
+        }
+
+        .admin {
+            background: #222;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Balkan New Project</h1>
+
+    <div class="section" id="zalbe-section">
+        <h2>Pošalji žalbu</h2>
+        <form id="zalbaForm">
+            <label for="ime">Ime igrača:</label>
+            <input id="ime" required>
+            <label for="tema">Tema:</label>
+            <input id="tema" required>
+            <label for="opis">Opis:</label>
+            <textarea id="opis" rows="4" required></textarea>
+            <button type="submit">Pošalji žalbu</button>
+        </form>
+        <p id="zalbaMsg" style="color:#0f0;"></p>
+    </div>
+
+    <div class="section" id="obavestenja-section">
+        <h2>Obaveštenja</h2>
+        <div id="obavList"></div>
+    </div>
+
+    <div class="section admin" id="admin-section">
+        <h2>Admin: Dodaj obaveštenje</h2>
+        <form id="obavForm">
+            <label for="naslov">Naslov:</label>
+            <input id="naslov" required>
+            <label for="tekst">Tekst:</label>
+            <textarea id="tekst" rows="3" required></textarea>
+            <button type="submit">Dodaj obaveštenje</button>
+        </form>
+        <p id="obavMsg" style="color:#0f0;"></p>
+    </div>
+
+    <!-- SQL.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
+    <script>
+    (async () => {
+      // init SQL.js
+      const SQL = await initSqlJs({ locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${file}` });
+      const db = new SQL.Database();
+      // create tables
+      db.run(`CREATE TABLE zalbe (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ime TEXT, tema TEXT, opis TEXT, datum TEXT
+      )`);
+      db.run(`CREATE TABLE obavestenja (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        naslov TEXT, tekst TEXT, datum TEXT
+      )`);
+
+      // helper to render obavestenja
+      function renderObav() {
+        const res = db.exec("SELECT id, naslov, tekst, datum FROM obavestenja ORDER BY id DESC");
+        const list = document.getElementById('obavList');
+        list.innerHTML = '';
+        if (res.length) {
+          let html = `<table><tr><th>Naslov</th><th>Tekst</th><th>Datum</th></tr>`;
+          res[0].values.forEach(r => {
+            html += `<tr><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`;
+          });
+          html += `</table>`;
+          list.innerHTML = html;
+        } else {
+          list.innerHTML = `<p style="color:#00ccff;">Nema obaveštenja.</p>`;
+        }
+      }
+
+      // handle zalba form
+      document.getElementById('zalbaForm').addEventListener('submit', e => {
+        e.preventDefault();
+        const ime = e.target.ime.value.trim();
+        const tema = e.target.tema.value.trim();
+        const opis = e.target.opis.value.trim();
+        const datum = new Date().toLocaleString();
+        db.run("INSERT INTO zalbe (ime, tema, opis, datum) VALUES (?,?,?,?)",
+               [ime, tema, opis, datum]);
+        document.getElementById('zalbaMsg').textContent = 'Žalba poslata!';
+        e.target.reset();
+      });
+
+      // handle obavestenje form
+      document.getElementById('obavForm').addEventListener('submit', e => {
+        e.preventDefault();
+        const naslov = e.target.naslov.value.trim();
+        const tekst = e.target.tekst.value.trim();
+        const datum = new Date().toLocaleString();
+        db.run("INSERT INTO obavestenja (naslov, tekst, datum) VALUES (?,?,?)",
+               [naslov, tekst, datum]);
+        document.getElementById('obavMsg').textContent = 'Obaveštenje dodato!';
+        e.target.reset();
+        renderObav();
+      });
+
+      // initial render
+      renderObav();
+    })();
+    </script>
+</body>
+</html>
